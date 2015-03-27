@@ -25,6 +25,8 @@ import org.apache.hadoop.metrics2.sink.timeline.TimelineMetric;
 import org.apache.hadoop.metrics2.sink.timeline.TimelineMetrics;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.timeline.TimelinePutResponse;
+import org.apache.hadoop.yarn.server.applicationhistoryservice.metrics.tee.MetricsStoreTeeWriter;
+
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
 import static org.apache.hadoop.yarn.server.applicationhistoryservice.metrics.timeline.PhoenixTransactSQL.Condition;
 import static org.apache.hadoop.yarn.server.applicationhistoryservice.metrics.timeline.PhoenixTransactSQL.DefaultCondition;
 
@@ -42,6 +45,8 @@ public class HBaseTimelineMetricStore extends AbstractService
   static final Log LOG = LogFactory.getLog(HBaseTimelineMetricStore.class);
   private final TimelineMetricConfiguration configuration;
   private PhoenixHBaseAccessor hBaseAccessor;
+  private boolean metricsStoreTeeEnable = false;
+  private MetricsStoreTeeWriter teeWriter;
 
   /**
    * Construct the service.
@@ -95,6 +100,11 @@ public class HBaseTimelineMetricStore extends AbstractService
     if (!hourlyHostAggregator.isDisabled()) {
       Thread aggregatorHourlyThread = new Thread(hourlyHostAggregator);
       aggregatorHourlyThread.start();
+    }
+    
+    metricsStoreTeeEnable = metricsConf.getBoolean(TimelineMetricConfiguration.METRICS_STORE_TEE_ENABLE, false);
+    if(metricsStoreTeeEnable){
+      teeWriter = new MetricsStoreTeeWriter(metricsConf);
     }
   }
 
@@ -266,6 +276,9 @@ public class HBaseTimelineMetricStore extends AbstractService
     TimelinePutResponse response = new TimelinePutResponse();
 
     hBaseAccessor.insertMetricRecords(metrics);
+    if(metricsStoreTeeEnable){
+      teeWriter.writeMetrics(metrics, response);
+    }
 
     return response;
   }

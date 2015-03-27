@@ -127,6 +127,12 @@ public class TimelineMetricConfiguration {
 
   public static final String TIMELINE_SERVICE_RPC_ADDRESS =
     "timeline.metrics.service.rpc.address";
+  
+  public static final String METRICS_STORE_TEE_ENABLE =
+    "timeline.metrics.store.tee.enable";
+  
+  public static final String METRICS_STORE_TEE_WRITERS = 
+    "timeline.metrics.store.tee.writers";
 
   private Configuration hbaseConf;
   private Configuration metricsConf;
